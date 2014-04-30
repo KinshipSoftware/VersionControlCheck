@@ -8,6 +8,14 @@
     <packaging>maven-plugin</packaging>
     <name>version-controller-check</name>
     <url>https://github.com/TheLanguageArchive/VersionControlCheck</url>
+    <organization> 
+        <name>The Language Archive, Max Planck Institute for Psycholinguistics</name> 
+        <url>http://tla.mpi.nl</url>
+    </organization>
+    <scm>
+        <developerConnection>scm:git:https://github.com/TheLanguageArchive/VersionControlCheck.git</developerConnection>
+        <url>https://github.com/TheLanguageArchive/VersionControlCheck</url>
+    </scm>
     <properties>
         <application.majorVersion>1</application.majorVersion> 
         <application.minorVersion>0</application.minorVersion> 
