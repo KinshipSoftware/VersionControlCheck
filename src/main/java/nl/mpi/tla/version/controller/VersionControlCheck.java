@@ -20,6 +20,9 @@ package nl.mpi.tla.version.controller;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import org.apache.maven.plugin.AbstractMojo;
@@ -46,6 +49,11 @@ public class VersionControlCheck extends AbstractMojo {
     enum BuildType {
 
         pretesting, testing, stable, SNAPSHOT
+    }
+
+    enum VcsType {
+
+        svn, git
     }
     final private Logger logger = LoggerFactory.getLogger(getClass());
     /**
@@ -92,6 +100,12 @@ public class VersionControlCheck extends AbstractMojo {
      */
     private BuildType buildType;
     /**
+     * @parameter expression="${vcsType}"
+     * @required
+     * @readonly
+     */
+    private VcsType vcsType;
+    /**
      * Modules which are allowed short module versions: eg 1.0 instead of
      * 1.0.0-testing.
      *
@@ -121,6 +135,9 @@ public class VersionControlCheck extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        if (vcsType == VcsType.svn) {
+            throw new MojoExecutionException("SVN is not yet supported.");
+        }
         if (verbose) {
             logger.info("VersionControlCheck");
             logger.info("project: " + project);
@@ -146,15 +163,17 @@ public class VersionControlCheck extends AbstractMojo {
 //                }
                 final String expectedVersion;
                 final int buildVersion;
+                final String committedDate;
                 if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
                     expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
                     buildVersion = -1;
+                    committedDate = "";
                 } else {
-                    Process process = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=oneline", reactorProject.getBasedir().getName()}, null, projectDirectory);
-                    Scanner scanner = new Scanner(process.getInputStream());
+                    Process logProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=oneline", reactorProject.getBasedir().getName()}, null, projectDirectory);
+                    Scanner logScanner = new Scanner(logProcess.getInputStream());
                     int lineCount = 0;
-                    while (scanner.hasNext()) {
-                        final String nextLine = scanner.nextLine();
+                    while (logScanner.hasNext()) {
+                        final String nextLine = logScanner.nextLine();
                         if (nextLine.indexOf(" ") != 40) {
                             if (verbose) {
                                 logger.info(nextLine);
@@ -165,6 +184,9 @@ public class VersionControlCheck extends AbstractMojo {
                         lineCount++;
                     }
                     logger.info(artifactId + ".buildVersion: " + Integer.toString(lineCount));
+                    Process dateProcess = Runtime.getRuntime().exec(new String[]{"git", "show", "-s", "--format=\"%ci\""}, null, reactorProject.getBasedir());
+                    Scanner dateScanner = new Scanner(dateProcess.getInputStream());
+                    committedDate = dateScanner.nextLine();
                     if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
                         expectedVersion = majorVersion + "." + minorVersion;
                     } else {
@@ -178,12 +200,20 @@ public class VersionControlCheck extends AbstractMojo {
                     logger.error("Artifact: " + artifactId);
                     throw new MojoExecutionException("The build numbers to not match for '" + artifactId + "': '" + expectedVersion + "' vs '" + moduleVersion + "'");
                 }
+
+                DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                Date date = new Date();
+                final String buildDate = dateFormat.format(date);
+
                 final String versionPropertyName = groupId + "." + artifactId + ".moduleVersion";
                 logger.info("Setting property '" + versionPropertyName + "' to '" + expectedVersion + "'");
                 reactorProject.getProperties().setProperty(versionPropertyName, expectedVersion);
                 reactorProject.getProperties().setProperty(propertiesPrefix + ".majorVersion", majorVersion);
                 reactorProject.getProperties().setProperty(propertiesPrefix + ".minorVersion", minorVersion);
                 reactorProject.getProperties().setProperty(propertiesPrefix + ".buildVersion", Integer.toString(buildVersion));
+                reactorProject.getProperties().setProperty(propertiesPrefix + ".committedDate", committedDate);
+                reactorProject.getProperties().setProperty(propertiesPrefix + ".buildDate", buildDate);
+
             }
         } catch (IOException exception) {
             throw new MojoExecutionException("Failed to get the git log.", exception);
