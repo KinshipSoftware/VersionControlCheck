@@ -112,6 +112,12 @@ public class VersionControlCheck extends AbstractMojo {
      * @readonly
      */
     private boolean allowSnapshots;
+    /**
+     * @parameter expression="${propertiesPrefix}"
+     * @required
+     * @readonly
+     */
+    private String propertiesPrefix;
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -128,6 +134,7 @@ public class VersionControlCheck extends AbstractMojo {
             for (MavenProject reactorProject : mavenProjects) {
                 final String artifactId = reactorProject.getArtifactId();
                 final String moduleVersion = reactorProject.getVersion();
+                final String groupId = reactorProject.getGroupId();
                 logger.info("Checking version numbers for " + artifactId);
                 if (verbose) {
                     logger.info("artifactId: " + artifactId);
@@ -137,26 +144,33 @@ public class VersionControlCheck extends AbstractMojo {
 //                for (MavenProject dependencyProject : reactorProject.getDependencies()) {
 //                    logger.info("dependencyProject:" + dependencyProject.getArtifactId());
 //                }
-                Process process = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=oneline", reactorProject.getBasedir().getName()}, null, projectDirectory);
-                Scanner scanner = new Scanner(process.getInputStream());
-                int lineCount = 0;
-                while (scanner.hasNext()) {
-                    final String nextLine = scanner.nextLine();
-                    if (nextLine.indexOf(" ") != 40) {
-                        if (verbose) {
-                            logger.info(nextLine);
-                        }
-//                        logger.info(nextLine.indexOf(" "));
-                        throw new MojoExecutionException("Invalid git log found. Please check the project directory specified is a git repository.");
-                    }
-                    lineCount++;
-                }
-                logger.info(artifactId + ".buildVersion: " + Integer.toString(lineCount));
                 final String expectedVersion;
-                if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
-                    expectedVersion = majorVersion + "." + minorVersion;
+                final int buildVersion;
+                if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
+                    expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
+                    buildVersion = -1;
                 } else {
-                    expectedVersion = majorVersion + "." + minorVersion + "." + lineCount + "-" + buildType;
+                    Process process = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=oneline", reactorProject.getBasedir().getName()}, null, projectDirectory);
+                    Scanner scanner = new Scanner(process.getInputStream());
+                    int lineCount = 0;
+                    while (scanner.hasNext()) {
+                        final String nextLine = scanner.nextLine();
+                        if (nextLine.indexOf(" ") != 40) {
+                            if (verbose) {
+                                logger.info(nextLine);
+                            }
+//                        logger.info(nextLine.indexOf(" "));
+                            throw new MojoExecutionException("Invalid git log found. Please check the project directory specified is a git repository.");
+                        }
+                        lineCount++;
+                    }
+                    logger.info(artifactId + ".buildVersion: " + Integer.toString(lineCount));
+                    if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
+                        expectedVersion = majorVersion + "." + minorVersion;
+                    } else {
+                        expectedVersion = majorVersion + "." + minorVersion + "." + lineCount + "-" + buildType;
+                    }
+                    buildVersion = lineCount;
                 }
                 if (!expectedVersion.equals(moduleVersion)) {
                     logger.error("Expecting version number: " + expectedVersion);
@@ -164,7 +178,12 @@ public class VersionControlCheck extends AbstractMojo {
                     logger.error("Artifact: " + artifactId);
                     throw new MojoExecutionException("The build numbers to not match for '" + artifactId + "': '" + expectedVersion + "' vs '" + moduleVersion + "'");
                 }
-                reactorProject.getProperties().setProperty(artifactId + ".buildVersion", Integer.toString(lineCount));
+                final String versionPropertyName = groupId + "." + artifactId + ".moduleVersion";
+                logger.info("Setting property '" + versionPropertyName + "' to '" + expectedVersion + "'");
+                reactorProject.getProperties().setProperty(versionPropertyName, expectedVersion);
+                reactorProject.getProperties().setProperty(propertiesPrefix + ".majorVersion", majorVersion);
+                reactorProject.getProperties().setProperty(propertiesPrefix + ".minorVersion", minorVersion);
+                reactorProject.getProperties().setProperty(propertiesPrefix + ".buildVersion", Integer.toString(buildVersion));
             }
         } catch (IOException exception) {
             throw new MojoExecutionException("Failed to get the git log.", exception);
