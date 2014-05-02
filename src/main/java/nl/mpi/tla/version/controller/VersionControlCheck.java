@@ -162,14 +162,14 @@ public class VersionControlCheck extends AbstractMojo {
 //                    logger.info("dependencyProject:" + dependencyProject.getArtifactId());
 //                }
                 final String expectedVersion;
-                final int buildVersion;
-                final String committedDate;
+                final String buildVersionString;
+                final String lastCommitDate;
                 if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
                     expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
-                    buildVersion = -1;
-                    committedDate = "";
+                    buildVersionString = ""; //"SNAPSHOT"; it will be nice to have snapshot here but we need to update some of the unit tests first
+                    lastCommitDate = "";
                 } else {
-                    Process logProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=oneline", reactorProject.getBasedir().getName()}, null, projectDirectory);
+                    Process logProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=format:%H", reactorProject.getBasedir().getName()}, null, projectDirectory);
                     Scanner logScanner = new Scanner(logProcess.getInputStream());
                     int lineCount = 0;
                     while (logScanner.hasNext()) {
@@ -184,15 +184,16 @@ public class VersionControlCheck extends AbstractMojo {
                         lineCount++;
                     }
                     logger.info(artifactId + ".buildVersion: " + Integer.toString(lineCount));
-                    Process dateProcess = Runtime.getRuntime().exec(new String[]{"git", "show", "-s", "--format=\"%ci\""}, null, reactorProject.getBasedir());
+                    Process dateProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "-1", "--format=\"%ci\""}, null, reactorProject.getBasedir());
                     Scanner dateScanner = new Scanner(dateProcess.getInputStream());
-                    committedDate = dateScanner.nextLine();
+                    lastCommitDate = dateScanner.nextLine();
+                    System.out.println("committedDate:" + lastCommitDate);
                     if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
                         expectedVersion = majorVersion + "." + minorVersion;
                     } else {
                         expectedVersion = majorVersion + "." + minorVersion + "." + lineCount + "-" + buildType;
                     }
-                    buildVersion = lineCount;
+                    buildVersionString = Integer.toString(lineCount);
                 }
                 if (!expectedVersion.equals(moduleVersion)) {
                     logger.error("Expecting version number: " + expectedVersion);
@@ -210,8 +211,8 @@ public class VersionControlCheck extends AbstractMojo {
                 reactorProject.getProperties().setProperty(versionPropertyName, expectedVersion);
                 reactorProject.getProperties().setProperty(propertiesPrefix + ".majorVersion", majorVersion);
                 reactorProject.getProperties().setProperty(propertiesPrefix + ".minorVersion", minorVersion);
-                reactorProject.getProperties().setProperty(propertiesPrefix + ".buildVersion", Integer.toString(buildVersion));
-                reactorProject.getProperties().setProperty(propertiesPrefix + ".committedDate", committedDate);
+                reactorProject.getProperties().setProperty(propertiesPrefix + ".buildVersion", buildVersionString);
+                reactorProject.getProperties().setProperty(propertiesPrefix + ".lastCommitDate", lastCommitDate);
                 reactorProject.getProperties().setProperty(propertiesPrefix + ".buildDate", buildDate);
 
             }
