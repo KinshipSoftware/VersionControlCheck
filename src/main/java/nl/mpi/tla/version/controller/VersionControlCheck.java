@@ -19,12 +19,10 @@
 package nl.mpi.tla.version.controller;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Scanner;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
@@ -135,8 +133,16 @@ public class VersionControlCheck extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        if (vcsType == VcsType.svn) {
-            throw new MojoExecutionException("SVN is not yet supported.");
+        final VcsVersionChecker versionChecker;
+        switch (vcsType) {
+            case git:
+                versionChecker = new GitVersionChecker(new CommandRunnerImpl());
+                break;
+            case svn:
+                versionChecker = new SvnVersionChecker(new CommandRunnerImpl());
+                break;
+            default:
+                throw new MojoExecutionException("Unknown version control system: " + vcsType);
         }
         if (verbose) {
             logger.info("VersionControlCheck");
@@ -147,76 +153,57 @@ public class VersionControlCheck extends AbstractMojo {
             logger.info("outputDirectory: " + outputDirectory);
             logger.info("projectDirectory :" + projectDirectory);
         }
-        try {
-            for (MavenProject reactorProject : mavenProjects) {
-                final String artifactId = reactorProject.getArtifactId();
-                final String moduleVersion = reactorProject.getVersion();
-                final String groupId = reactorProject.getGroupId();
-                logger.info("Checking version numbers for " + artifactId);
-                if (verbose) {
-                    logger.info("artifactId: " + artifactId);
-                    logger.info("moduleVersion: " + moduleVersion);
-                    logger.info("moduleDir :" + reactorProject.getBasedir());
-                }
+        for (MavenProject reactorProject : mavenProjects) {
+            final String artifactId = reactorProject.getArtifactId();
+            final String moduleVersion = reactorProject.getVersion();
+            final String groupId = reactorProject.getGroupId();
+            logger.info("Checking version numbers for " + artifactId);
+            if (verbose) {
+                logger.info("artifactId: " + artifactId);
+                logger.info("moduleVersion: " + moduleVersion);
+                logger.info("moduleDir :" + reactorProject.getBasedir());
+            }
 //                for (MavenProject dependencyProject : reactorProject.getDependencies()) {
 //                    logger.info("dependencyProject:" + dependencyProject.getArtifactId());
 //                }
-                final String expectedVersion;
-                final String buildVersionString;
-                if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
-                    expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
-                    buildVersionString = "-1"; //"SNAPSHOT"; it will be nice to have snapshot here but we need to update some of the unit tests first
+            final String expectedVersion;
+            final String buildVersionString;
+            final File moduleDirectory = reactorProject.getBasedir();
+            if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
+                expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
+                buildVersionString = "-1"; //"SNAPSHOT"; it will be nice to have snapshot here but we need to update some of the unit tests first
+            } else {
+                int buildVersion = versionChecker.getBuildNumber(verbose, moduleDirectory, ".");
+                logger.info(artifactId + ".buildVersion: " + Integer.toString(buildVersion));
+                if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
+                    expectedVersion = majorVersion + "." + minorVersion;
                 } else {
-                    Process logProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=format:%H", reactorProject.getBasedir().getName()}, null, projectDirectory);
-                    Scanner logScanner = new Scanner(logProcess.getInputStream());
-                    int lineCount = 0;
-                    while (logScanner.hasNext()) {
-                        final String nextLine = logScanner.nextLine();
-                        if (nextLine.indexOf(" ") != 40) {
-                            if (verbose) {
-                                logger.info(nextLine);
-                            }
-//                        logger.info(nextLine.indexOf(" "));
-                            throw new MojoExecutionException("Invalid git log found. Please check the project directory specified is a git repository.");
-                        }
-                        lineCount++;
-                    }
-                    logger.info(artifactId + ".buildVersion: " + Integer.toString(lineCount));
-                    if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
-                        expectedVersion = majorVersion + "." + minorVersion;
-                    } else {
-                        expectedVersion = majorVersion + "." + minorVersion + "." + lineCount + "-" + buildType;
-                    }
-                    buildVersionString = Integer.toString(lineCount);
+                    expectedVersion = majorVersion + "." + minorVersion + "." + buildVersion + "-" + buildType;
                 }
-                if (!expectedVersion.equals(moduleVersion)) {
-                    logger.error("Expecting version number: " + expectedVersion);
-                    logger.error("But found: " + moduleVersion);
-                    logger.error("Artifact: " + artifactId);
-                    throw new MojoExecutionException("The build numbers to not match for '" + artifactId + "': '" + expectedVersion + "' vs '" + moduleVersion + "'");
-                }
-                // get the last commit date
-                Process dateProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "-1", "--format=\"%ci\""}, null, reactorProject.getBasedir());
-                Scanner dateScanner = new Scanner(dateProcess.getInputStream());
-                final String lastCommitDate = dateScanner.nextLine();
-                logger.info(".lastCommitDate:" + lastCommitDate);
-                // construct the compile date
-                DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
-                Date date = new Date();
-                final String buildDate = dateFormat.format(date);
-                // setting the maven properties
-                final String versionPropertyName = groupId + "." + artifactId + ".moduleVersion";
-                logger.info("Setting property '" + versionPropertyName + "' to '" + expectedVersion + "'");
-                reactorProject.getProperties().setProperty(versionPropertyName, expectedVersion);
-                reactorProject.getProperties().setProperty(propertiesPrefix + ".majorVersion", majorVersion);
-                reactorProject.getProperties().setProperty(propertiesPrefix + ".minorVersion", minorVersion);
-                reactorProject.getProperties().setProperty(propertiesPrefix + ".buildVersion", buildVersionString);
-                reactorProject.getProperties().setProperty(propertiesPrefix + ".lastCommitDate", lastCommitDate);
-                reactorProject.getProperties().setProperty(propertiesPrefix + ".buildDate", buildDate);
-
+                buildVersionString = Integer.toString(buildVersion);
             }
-        } catch (IOException exception) {
-            throw new MojoExecutionException("Failed to get the git log.", exception);
+            if (!expectedVersion.equals(moduleVersion)) {
+                logger.error("Expecting version number: " + expectedVersion);
+                logger.error("But found: " + moduleVersion);
+                logger.error("Artifact: " + artifactId);
+                throw new MojoExecutionException("The build numbers to not match for '" + artifactId + "': '" + expectedVersion + "' vs '" + moduleVersion + "'");
+            }
+            // get the last commit date
+            final String lastCommitDate = versionChecker.getLastCommitDate(verbose, moduleDirectory, ".");
+            logger.info(".lastCommitDate:" + lastCommitDate);
+            // construct the compile date
+            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
+            Date date = new Date();
+            final String buildDate = dateFormat.format(date);
+            // setting the maven properties
+            final String versionPropertyName = groupId + "." + artifactId + ".moduleVersion";
+            logger.info("Setting property '" + versionPropertyName + "' to '" + expectedVersion + "'");
+            reactorProject.getProperties().setProperty(versionPropertyName, expectedVersion);
+            reactorProject.getProperties().setProperty(propertiesPrefix + ".majorVersion", majorVersion);
+            reactorProject.getProperties().setProperty(propertiesPrefix + ".minorVersion", minorVersion);
+            reactorProject.getProperties().setProperty(propertiesPrefix + ".buildVersion", buildVersionString);
+            reactorProject.getProperties().setProperty(propertiesPrefix + ".lastCommitDate", lastCommitDate);
+            reactorProject.getProperties().setProperty(propertiesPrefix + ".buildDate", buildDate);
         }
     }
 }
