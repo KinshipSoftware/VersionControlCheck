@@ -163,11 +163,9 @@ public class VersionControlCheck extends AbstractMojo {
 //                }
                 final String expectedVersion;
                 final String buildVersionString;
-                final String lastCommitDate;
                 if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
                     expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
-                    buildVersionString = ""; //"SNAPSHOT"; it will be nice to have snapshot here but we need to update some of the unit tests first
-                    lastCommitDate = "";
+                    buildVersionString = "-1"; //"SNAPSHOT"; it will be nice to have snapshot here but we need to update some of the unit tests first
                 } else {
                     Process logProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "--pretty=format:%H", reactorProject.getBasedir().getName()}, null, projectDirectory);
                     Scanner logScanner = new Scanner(logProcess.getInputStream());
@@ -184,10 +182,6 @@ public class VersionControlCheck extends AbstractMojo {
                         lineCount++;
                     }
                     logger.info(artifactId + ".buildVersion: " + Integer.toString(lineCount));
-                    Process dateProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "-1", "--format=\"%ci\""}, null, reactorProject.getBasedir());
-                    Scanner dateScanner = new Scanner(dateProcess.getInputStream());
-                    lastCommitDate = dateScanner.nextLine();
-                    System.out.println("committedDate:" + lastCommitDate);
                     if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
                         expectedVersion = majorVersion + "." + minorVersion;
                     } else {
@@ -201,11 +195,16 @@ public class VersionControlCheck extends AbstractMojo {
                     logger.error("Artifact: " + artifactId);
                     throw new MojoExecutionException("The build numbers to not match for '" + artifactId + "': '" + expectedVersion + "' vs '" + moduleVersion + "'");
                 }
-
-                DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                // get the last commit date
+                Process dateProcess = Runtime.getRuntime().exec(new String[]{"git", "log", "-1", "--format=\"%ci\""}, null, reactorProject.getBasedir());
+                Scanner dateScanner = new Scanner(dateProcess.getInputStream());
+                final String lastCommitDate = dateScanner.nextLine();
+                logger.info(".lastCommitDate:" + lastCommitDate);
+                // construct the compile date
+                DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
                 Date date = new Date();
                 final String buildDate = dateFormat.format(date);
-
+                // setting the maven properties
                 final String versionPropertyName = groupId + "." + artifactId + ".moduleVersion";
                 logger.info("Setting property '" + versionPropertyName + "' to '" + expectedVersion + "'");
                 reactorProject.getProperties().setProperty(versionPropertyName, expectedVersion);
