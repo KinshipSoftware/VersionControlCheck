@@ -172,14 +172,14 @@ public class VersionControlCheck extends AbstractMojo {
             if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
                 expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
                 buildVersionString = "-1"; //"SNAPSHOT"; it will be nice to have snapshot here but we need to update some of the unit tests first
+            } else if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
+                expectedVersion = majorVersion + "." + minorVersion;
+                buildVersionString = "-1";
             } else {
+                logger.info("getting build number");
                 int buildVersion = versionChecker.getBuildNumber(verbose, moduleDirectory, ".");
                 logger.info(artifactId + ".buildVersion: " + Integer.toString(buildVersion));
-                if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
-                    expectedVersion = majorVersion + "." + minorVersion;
-                } else {
-                    expectedVersion = majorVersion + "." + minorVersion + "." + buildVersion + "-" + buildType;
-                }
+                expectedVersion = majorVersion + "." + minorVersion + "." + buildVersion + "-" + buildType;
                 buildVersionString = Integer.toString(buildVersion);
             }
             if (!expectedVersion.equals(moduleVersion)) {
@@ -189,6 +189,7 @@ public class VersionControlCheck extends AbstractMojo {
                 throw new MojoExecutionException("The build numbers to not match for '" + artifactId + "': '" + expectedVersion + "' vs '" + moduleVersion + "'");
             }
             // get the last commit date
+            logger.info("getting lastCommitDate");
             final String lastCommitDate = versionChecker.getLastCommitDate(verbose, moduleDirectory, ".");
             logger.info(".lastCommitDate:" + lastCommitDate);
             // construct the compile date

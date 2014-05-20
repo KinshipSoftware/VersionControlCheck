@@ -35,16 +35,8 @@ public class CommandRunnerImpl implements CommandRunner {
     final private Logger logger = LoggerFactory.getLogger(getClass());
 
     public InputStream runCommand(String[] commandArray, File workingDirectory) throws IOException {
-        logger.info(commandArray[0]);
-        logger.info(" ");
-        logger.info(commandArray[1]);
-        logger.info(" ");
-        logger.info(commandArray[2]);
-        logger.info(" ");
-        logger.info(commandArray[3]);
-        logger.info(" ");
-        logger.info(workingDirectory.toString());
         Process logProcess = Runtime.getRuntime().exec(commandArray, null, workingDirectory);
+        //logger.info("exitValue:");// + logProcess.exitValue());
         return logProcess.getInputStream();
     }
 }

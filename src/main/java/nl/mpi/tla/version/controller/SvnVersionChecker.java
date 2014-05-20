@@ -48,24 +48,28 @@ public class SvnVersionChecker implements VcsVersionChecker {
                 }
             }
         } catch (IOException exception) {
-            throw new MojoExecutionException("Failed to get the git last commit id.", exception);
+            throw new MojoExecutionException("Failed to get the svn last commit id.", exception);
         }
-        throw new MojoExecutionException("Failed to get the git last commit id.");
+        throw new MojoExecutionException("Failed to get the svn last commit id.");
     }
 
     public String getLastCommitDate(boolean verbose, File projectDirectory, String moduleName) throws MojoExecutionException {
         try {
+            //System.out.println("getLastCommitDate");
+            //System.out.println("running svn info " + moduleName + " in " + projectDirectory);
             Scanner outputScanner = new Scanner(commandRunner.runCommand(new String[]{"svn", "info", moduleName}, projectDirectory));
             outputScanner.useDelimiter(":\\s|\n");
             while (outputScanner.hasNext()) {
-                if (outputScanner.next().equals("Last Changed Date")) {
+                final String next = outputScanner.next();
+                //System.out.println("next:" + next);
+                if (next.equals("Last Changed Date")) {
                     String lastCommitDate = outputScanner.next();
                     return lastCommitDate;
                 }
             }
         } catch (IOException exception) {
-            throw new MojoExecutionException("Failed to get the git last commit date.", exception);
+            throw new MojoExecutionException("Failed to get the svn last commit date.", exception);
         }
-        throw new MojoExecutionException("Failed to get the git last commit date.");
+        throw new MojoExecutionException("Failed to get the svn last commit date.");
     }
 }
