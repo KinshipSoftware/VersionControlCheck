@@ -104,9 +104,16 @@ public class VersionControlCheck extends AbstractMojo {
      * 1.0.0-testing.
      *
      * @parameter alias="shortVersionModules"
-     * @required
      */
     private List<String> modulesWithShortVersion;
+
+    /**
+     * Single module which uses short module versions: eg 1.0 instead of
+     * 1.0.0-testing.
+     *
+     * @parameter alias="shortVersionModule"
+     */
+    private String moduleWithShortVersion;
 
     /**
      * @parameter expression="${verbose}"
@@ -165,7 +172,7 @@ public class VersionControlCheck extends AbstractMojo {
             if (allowSnapshots && moduleVersion.contains("SNAPSHOT")) {
                 expectedVersion = majorVersion + "." + minorVersion + "-" + buildType + "-SNAPSHOT";
                 buildVersionString = "-1"; //"SNAPSHOT"; it will be nice to have snapshot here but we need to update some of the unit tests first
-            } else if (modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) {
+            } else if ((modulesWithShortVersion != null && modulesWithShortVersion.contains(artifactId)) || (moduleWithShortVersion != null && moduleWithShortVersion.equals(artifactId))) {
                 expectedVersion = majorVersion + "." + minorVersion;
                 buildVersionString = "-1";
             } else {
