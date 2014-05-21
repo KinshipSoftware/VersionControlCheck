@@ -93,7 +93,7 @@ public class VersionControlCheck extends AbstractMojo {
      * @parameter expression="${buildType}"
      * @required
      */
-    private BuildType buildType;
+    private String buildType;
     /**
      * @parameter expression="${vcsType}"
      * @required
