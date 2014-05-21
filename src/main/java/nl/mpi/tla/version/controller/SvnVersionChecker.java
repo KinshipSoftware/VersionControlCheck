@@ -40,7 +40,7 @@ public class SvnVersionChecker implements VcsVersionChecker {
     public int getBuildNumber(boolean verbose, File projectDirectory, String moduleName) throws MojoExecutionException {
         int logCounter = 0;
         try {
-//            logger.info("svn info " + moduleName + ", in " + projectDirectory.toString());
+            //logger.info("svn log -q " + moduleName + ", in " + projectDirectory.toString());
             Scanner outputScanner = new Scanner(commandRunner.runCommand(new String[]{"svn", "log", "-q", moduleName}, projectDirectory));
             outputScanner.useDelimiter("\n");
             while (outputScanner.hasNext()) {
