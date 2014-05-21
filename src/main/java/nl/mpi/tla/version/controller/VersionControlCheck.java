@@ -98,7 +98,7 @@ public class VersionControlCheck extends AbstractMojo {
      * @parameter expression="${vcsType}"
      * @required
      */
-    private VcsType vcsType;
+    private String vcsType;
     /**
      * Modules which are allowed short module versions: eg 1.0 instead of
      * 1.0.0-testing.
@@ -134,15 +134,19 @@ public class VersionControlCheck extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException {
         final VcsVersionChecker versionChecker;
-        switch (vcsType) {
-            case git:
-                versionChecker = new GitVersionChecker(new CommandRunnerImpl());
-                break;
-            case svn:
-                versionChecker = new SvnVersionChecker(new CommandRunnerImpl());
-                break;
-            default:
-                throw new MojoExecutionException("Unknown version control system: " + vcsType);
+        try {
+            switch (VcsType.valueOf(vcsType)) {
+                case git:
+                    versionChecker = new GitVersionChecker(new CommandRunnerImpl());
+                    break;
+                case svn:
+                    versionChecker = new SvnVersionChecker(new CommandRunnerImpl());
+                    break;
+                default:
+                    throw new MojoExecutionException("Unknown version control system: " + vcsType);
+            }
+        } catch (IllegalArgumentException exception) {
+            throw new MojoExecutionException("Unknown version control system: " + vcsType + "\nValid options are: " + VcsType.git.name() + " or " + VcsType.svn.name());
         }
         if (verbose) {
             logger.info("VersionControlCheck");
