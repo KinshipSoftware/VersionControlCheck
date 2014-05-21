@@ -82,25 +82,21 @@ public class VersionControlCheck extends AbstractMojo {
     /**
      * @parameter expression="${majorVersion}"
      * @required
-     * @readonly
      */
     private String majorVersion;
     /**
      * @parameter expression="${minorVersion}"
      * @required
-     * @readonly
      */
     private String minorVersion;
     /**
      * @parameter expression="${buildType}"
      * @required
-     * @readonly
      */
     private BuildType buildType;
     /**
      * @parameter expression="${vcsType}"
      * @required
-     * @readonly
      */
     private VcsType vcsType;
     /**
@@ -108,26 +104,23 @@ public class VersionControlCheck extends AbstractMojo {
      * 1.0.0-testing.
      *
      * @parameter alias="shortVersionModules"
-     * @readonly
+     * @required
      */
     private List<String> modulesWithShortVersion;
 
     /**
      * @parameter expression="${verbose}"
      * @required
-     * @readonly
      */
     private boolean verbose;
     /**
      * @parameter expression="${allowSnapshots}"
      * @required
-     * @readonly
      */
     private boolean allowSnapshots;
     /**
      * @parameter expression="${propertiesPrefix}"
      * @required
-     * @readonly
      */
     private String propertiesPrefix;
 

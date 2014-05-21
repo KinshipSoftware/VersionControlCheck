@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.mpi</groupId>
     <artifactId>version-control-check</artifactId>
-    <version>1.0.16-testing</version>
+    <version>1.0.17-testing</version>
     <packaging>maven-plugin</packaging>
     <name>version-controller-check</name>
     <url>https://github.com/TheLanguageArchive/VersionControlCheck</url>
@@ -145,6 +145,13 @@
             <url>https://lux15.mpi.nl/nexus/content/groups/public/</url>
         </repository>
     </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>MPI</id>
+            <name>MPI LAT Repository/</name>
+            <url>http://lux15.mpi.nl/nexus/content/groups/public</url>
+        </pluginRepository>
+    </pluginRepositories>
     <distributionManagement>
         <snapshotRepository>
             <id>MPI-Snapshots</id>
