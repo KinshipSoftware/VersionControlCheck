@@ -38,30 +38,33 @@ public class SvnVersionChecker implements VcsVersionChecker {
     }
 
     public int getBuildNumber(boolean verbose, File projectDirectory, String moduleName) throws MojoExecutionException {
+        int logCounter = 0;
         try {
-            Scanner outputScanner = new Scanner(commandRunner.runCommand(new String[]{"svn", "info", moduleName}, projectDirectory));
-            outputScanner.useDelimiter(":\\s|\n");
+//            logger.info("svn info " + moduleName + ", in " + projectDirectory.toString());
+            Scanner outputScanner = new Scanner(commandRunner.runCommand(new String[]{"svn", "log", "-q", moduleName}, projectDirectory));
+            outputScanner.useDelimiter("\n");
             while (outputScanner.hasNext()) {
-                if (outputScanner.next().equals("Revision")) {
-                    int buildNumber = outputScanner.nextInt();
-                    return buildNumber;
+                final String next = outputScanner.next();
+//                logger.info(next);
+                if (next.startsWith("r")) {
+                    logCounter++;
                 }
             }
         } catch (IOException exception) {
             throw new MojoExecutionException("Failed to get the svn last commit id.", exception);
         }
-        throw new MojoExecutionException("Failed to get the svn last commit id.");
+        return logCounter;
     }
 
     public String getLastCommitDate(boolean verbose, File projectDirectory, String moduleName) throws MojoExecutionException {
         try {
-            //System.out.println("getLastCommitDate");
-            //System.out.println("running svn info " + moduleName + " in " + projectDirectory);
+            //logger.info("getLastCommitDate");
+            //logger.info("running svn info " + moduleName + " in " + projectDirectory);
             Scanner outputScanner = new Scanner(commandRunner.runCommand(new String[]{"svn", "info", moduleName}, projectDirectory));
             outputScanner.useDelimiter(":\\s|\n");
             while (outputScanner.hasNext()) {
                 final String next = outputScanner.next();
-                //System.out.println("next:" + next);
+                //logger.info("next:" + next);
                 if (next.equals("Last Changed Date")) {
                     String lastCommitDate = outputScanner.next();
                     return lastCommitDate;

@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.mpi</groupId>
     <artifactId>version-control-check</artifactId>
-    <version>1.0.20-testing</version>
+    <version>1.0.21-testing</version>
     <packaging>maven-plugin</packaging>
     <name>version-controller-check</name>
     <url>https://github.com/TheLanguageArchive/VersionControlCheck</url>
