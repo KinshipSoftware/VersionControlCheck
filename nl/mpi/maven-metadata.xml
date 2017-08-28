@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <plugins>
+    <plugin>
+      <name>version-controller-check</name>
+      <prefix>version-control-check</prefix>
+      <artifactId>version-control-check</artifactId>
+    </plugin>
+  </plugins>
+</metadata>

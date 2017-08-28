@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>nl.mpi</groupId>
+  <artifactId>version-control-check</artifactId>
+  <versioning>
+    <latest>1.0.27-testing</latest>
+    <release>1.0.27-testing</release>
+    <versions>
+      <version>1.0.27-testing</version>
+    </versions>
+    <lastUpdated>20170828142313</lastUpdated>
+  </versioning>
+</metadata>
