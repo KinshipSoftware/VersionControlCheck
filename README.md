@@ -6,6 +6,8 @@ This project is a maven plugin which validates the major, minor and build number
 Example usage:
 
 ```xml
+    <build>
+        <plugins>
             <plugin>
                 <groupId>nl.mpi</groupId>
                 <artifactId>version-control-check</artifactId>
@@ -31,4 +33,19 @@ Example usage:
                     </shortVersionModules>
                 </configuration>
             </plugin>
+            </plugins>
+    </build>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>VersionControlCheck</id>
+            <name>VersionControlCheck Repository</name>
+            <url>http://kinshipsoftware.github.io/VersionControlCheck/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </pluginRepository>
+    </pluginRepositories>
 ```
